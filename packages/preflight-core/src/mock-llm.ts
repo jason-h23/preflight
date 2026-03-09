@@ -14,6 +14,17 @@ export interface MockResponse {
   readonly reply: string
 }
 
+/**
+ * Controls which message(s) `createMockOpenAI` passes to `mock.resolve()`.
+ *
+ * - `'last'` *(default)* — matches only the last message in the array (typically the user turn).
+ *   **System prompts are silently ignored.** Use this when your mock rules target user content.
+ * - `'all'` — concatenates all message contents with `'\n'` and matches against the full string.
+ *   Use this when your mock rules need to see system prompt content.
+ * - `'first'` — matches only the first message (typically the system prompt).
+ */
+export type MatchStrategy = 'last' | 'all' | 'first'
+
 /** Configuration for `mockLLM` */
 export interface MockLLMOptions {
   /** Ordered list of mock rules. First match wins. */
@@ -90,9 +101,34 @@ export interface MockOpenAIClient {
 }
 
 /**
+ * Options for `createMockOpenAI`.
+ */
+export interface MockOpenAIOptions {
+  /**
+   * Which message(s) to pass to `mock.resolve()`. Defaults to `'last'`.
+   *
+   * **`'last'` (default):** Only the last message is matched. System prompts are
+   * silently ignored — ensure your mock rules target user-turn content only.
+   *
+   * **`'all'`:** All message contents are concatenated with `'\n'` before matching.
+   * Use when mock rules must see system prompt content alongside user content.
+   *
+   * **`'first'`:** Only the first message is matched. Useful for system-prompt-only rules.
+   *
+   * @default 'last'
+   */
+  readonly matchStrategy?: MatchStrategy
+}
+
+/**
  * Create an OpenAI SDK-compatible mock client backed by an LLMMock.
  *
+ * **Important:** By default (`matchStrategy: 'last'`), only the **last message** in the
+ * `messages` array is passed to `mock.resolve()`. System prompts in earlier messages are
+ * silently ignored. Set `matchStrategy: 'all'` to include all messages in the match.
+ *
  * @param mock - LLMMock instance (from `mockLLM`)
+ * @param options - Optional configuration including `matchStrategy`
  * @returns A MockOpenAIClient shaped like the OpenAI client's `chat.completions` API
  *
  * @example
@@ -100,9 +136,14 @@ export interface MockOpenAIClient {
  * const mock = mockLLM({ responses: [{ prompt: /swap/, reply: 'swap ETH' }] })
  * const openai = createMockOpenAI(mock)
  * const res = await openai.chat.completions.create({ model: 'gpt-4o', messages: [...] })
+ *
+ * // Match against all messages (including system prompt):
+ * const openaiAll = createMockOpenAI(mock, { matchStrategy: 'all' })
  * ```
  */
-export function createMockOpenAI(mock: LLMMock): MockOpenAIClient {
+export function createMockOpenAI(mock: LLMMock, options: MockOpenAIOptions = {}): MockOpenAIClient {
+  const { matchStrategy = 'last' } = options
+
   return {
     chat: {
       completions: {
@@ -110,8 +151,18 @@ export function createMockOpenAI(mock: LLMMock): MockOpenAIClient {
           if (params.messages.length === 0) {
             throw new Error('createMockOpenAI: messages array must not be empty')
           }
-          const lastMessage = params.messages[params.messages.length - 1]
-          const reply = mock.resolve(lastMessage.content)
+
+          let content: string
+          if (matchStrategy === 'all') {
+            content = params.messages.map((m) => m.content).join('\n')
+          } else if (matchStrategy === 'first') {
+            content = params.messages[0]!.content
+          } else {
+            // 'last' — default: match only the last message (system prompts silently ignored)
+            content = params.messages[params.messages.length - 1]!.content
+          }
+
+          const reply = mock.resolve(content)
           return {
             choices: [{ message: { role: 'assistant', content: reply } }],
           }

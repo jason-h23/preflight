@@ -37,6 +37,12 @@ export interface ClearanceOptions {
 /**
  * A proposed agent call to be validated.
  * All fields are checked against the clearance permissions.
+ *
+ * **Case sensitivity note:**
+ * - `action` is matched **case-sensitively** against `allowedActions`.
+ *   `'swap'` and `'Swap'` are treated as different actions.
+ * - `contract` is matched **case-insensitively** against `allowedContracts`
+ *   (EVM addresses are functionally equivalent regardless of checksum casing).
  */
 export interface AgentCall {
   /** The action name being attempted (case-sensitive) */
@@ -191,7 +197,8 @@ export function createClearance(
     permissions,
 
     get spentAmounts(): Readonly<Record<string, bigint>> {
-      return spentAmounts
+      // Return a shallow copy so callers cannot mutate the internal accumulator.
+      return { ...spentAmounts }
     },
 
     check(call: AgentCall): void {

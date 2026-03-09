@@ -270,6 +270,51 @@ describe('createClearance', () => {
     })
   })
 
+  describe('check() vs validate() isolation at budget boundary', () => {
+    it('check() at near-limit does not consume budget, subsequent validate() still has full remaining headroom', () => {
+      const clearance = createClearance(baseOptions) // ETH limit: 1 ETH
+      const halfEth = 500_000_000_000_000_000n
+
+      // Spend 0.5 ETH via validate()
+      clearance.validate({
+        action: 'swap',
+        contract: '0xUniswap',
+        spend: { token: 'ETH', amount: halfEth },
+      })
+      expect(clearance.spentAmounts['ETH']).toBe(halfEth)
+
+      // check() another 0.5 ETH — should pass (total would be exactly 1 ETH) but NOT accumulate
+      expect(() =>
+        clearance.check({
+          action: 'swap',
+          contract: '0xUniswap',
+          spend: { token: 'ETH', amount: halfEth },
+        })
+      ).not.toThrow()
+
+      // spentAmounts must still be 0.5 ETH — check() must not have accumulated
+      expect(clearance.spentAmounts['ETH']).toBe(halfEth)
+
+      // validate() the same 0.5 ETH — still within limit, should pass
+      expect(() =>
+        clearance.validate({
+          action: 'swap',
+          contract: '0xUniswap',
+          spend: { token: 'ETH', amount: halfEth },
+        })
+      ).not.toThrow()
+
+      // Now at exactly 1 ETH — any further spend must fail
+      expect(() =>
+        clearance.validate({
+          action: 'swap',
+          contract: '0xUniswap',
+          spend: { token: 'ETH', amount: 1n },
+        })
+      ).toThrow('exceeds limit')
+    })
+  })
+
   describe('spentAmounts', () => {
     it('should reflect cumulative spend after validate() calls', () => {
       const clearance = createClearance(baseOptions)
