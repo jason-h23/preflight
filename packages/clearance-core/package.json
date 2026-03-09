@@ -1,0 +1,15 @@
+{
+  "name": "@clearance/core",
+  "version": "0.1.0",
+  "description": "EIP-7702 based agent permission scoping",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "tsup": "^8.0.0"
+  }
+}

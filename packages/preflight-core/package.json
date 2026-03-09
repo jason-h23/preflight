@@ -1,0 +1,27 @@
+{
+  "name": "@preflight/core",
+  "version": "0.1.0",
+  "description": "AI agent behavioral testing framework for EVM",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run",
+    "dev": "vitest"
+  },
+  "dependencies": {
+    "viem": "^2.0.0",
+    "@viem/anvil": "^0.0.9"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0",
+    "tsup": "^8.0.0"
+  }
+}
