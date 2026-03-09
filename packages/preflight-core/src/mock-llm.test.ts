@@ -54,6 +54,18 @@ describe('mockLLM', () => {
     ).rejects.toThrow('No mock response found for: "do something unmatched"')
   })
 
+  it('should throw a specific error when messages array is empty', async () => {
+    const mock = mockLLM({ responses: [] })
+    const openai = createMockOpenAI(mock)
+
+    await expect(
+      openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [],
+      })
+    ).rejects.toThrow('createMockOpenAI: messages array must not be empty')
+  })
+
   it('should match the first matching response when multiple patterns exist', async () => {
     const mock = mockLLM({
       responses: [

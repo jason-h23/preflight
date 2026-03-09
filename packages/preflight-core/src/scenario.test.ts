@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { preflight } from './scenario'
 import type { ScenarioContext } from './scenario'
+import { createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
 
 describe('preflight.scenario', () => {
   it('should create a scenario with the given name', () => {
@@ -26,28 +28,28 @@ describe('preflight.scenario', () => {
     expect(capturedCtx!.fork.rpcUrl).toMatch(/^http:\/\//)
   }, 60_000)
 
-  it('should stop the fork after run completes', async () => {
+  it('should stop the fork after run completes (Anvil no longer responds)', async () => {
     const scenario = preflight.scenario('cleanup test', {
       fork: { rpc: 'https://rpc.mevblocker.io' },
     })
 
-    let forkStopped = false
-    let stopFn: (() => Promise<void>) | null = null
+    let anvilRpcUrl: string | null = null
 
     await scenario.run(async (ctx) => {
-      const originalStop = ctx.fork.stop
-      stopFn = originalStop
-      // Wrap stop to detect if it was called
-      ;(ctx.fork as { stop: () => Promise<void> }).stop = async () => {
-        forkStopped = true
-        await originalStop()
-      }
+      anvilRpcUrl = ctx.fork.rpcUrl
+      // Verify Anvil is running during the callback
+      const blockNumber = await ctx.fork.client.getBlockNumber()
+      expect(blockNumber).toBeGreaterThan(0n)
     })
 
-    // The fork should have been stopped even though we replaced the stop function
-    // before the finally block runs. Actually, scenario captures the fork reference,
-    // so let's just verify the run completes without error.
-    expect(stopFn).not.toBeNull()
+    // After run() completes, Anvil should be stopped.
+    // Verify by attempting a connection to the now-stopped Anvil process.
+    expect(anvilRpcUrl).not.toBeNull()
+    const clientAfterStop = createPublicClient({
+      chain: mainnet,
+      transport: http(anvilRpcUrl!, { timeout: 2_000, retryCount: 0 }),
+    })
+    await expect(clientAfterStop.getBlockNumber()).rejects.toThrow()
   }, 60_000)
 
   it('should stop the fork even if the callback throws', async () => {

@@ -13,7 +13,7 @@ export { preflight } from './scenario'
 export type { Scenario, ScenarioContext, ScenarioOptions } from './scenario'
 
 // On-chain assertions
-export { assertOnChain } from './assert'
+export { assertOnChain, OnChainAsserter } from './assert'
 export type { AssertContext, OnChainSnapshot } from './assert'
 
 // LLM mocking

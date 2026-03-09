@@ -99,6 +99,9 @@ export function createMockOpenAI(mock: LLMMock): {
     chat: {
       completions: {
         async create(params: ChatCompletionParams): Promise<ChatCompletionResponse> {
+          if (params.messages.length === 0) {
+            throw new Error('createMockOpenAI: messages array must not be empty')
+          }
           const lastMessage = params.messages[params.messages.length - 1]
           const reply = mock.resolve(lastMessage.content)
           return {
