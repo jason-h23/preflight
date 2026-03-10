@@ -1,7 +1,7 @@
 import { createMockChatModel } from '@preflight/adapter-langchain'
 import { mockLLM } from '@preflight/core'
 
-// 에이전트가 받는 허용 범위 (clearance에서 옴)
+// The allowed scope received by the agent (comes from clearance)
 export interface SwapIntent {
   tokenIn: string
   tokenOut: string
@@ -9,7 +9,7 @@ export interface SwapIntent {
   slippage: number
 }
 
-// LLM mock: "ETH to USDC swap" 프롬프트에 대한 응답
+// LLM mock: response for "ETH to USDC swap" prompts
 const swapLLM = mockLLM({
   responses: [
     {
@@ -31,7 +31,7 @@ const swapLLM = mockLLM({
 
 export const swapChatModel = createMockChatModel(swapLLM)
 
-// 에이전트 실행 함수: 메시지 → 스왑 인텐트 파싱
+// Agent runner: parses a user message into a swap intent
 export async function runSwapAgent(userMessage: string): Promise<SwapIntent | null> {
   const result = await swapChatModel.invoke([
     { role: 'system', content: 'You are a DeFi swap agent. Return JSON only.' },

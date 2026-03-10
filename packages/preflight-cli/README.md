@@ -2,22 +2,22 @@
 
 CLI runner for preflight AI agent behavioral tests.
 
-## 설치
+## Installation
 
 ```
 pnpm add -g @preflight/cli
 ```
 
-## 빠른 시작
+## Quick Start
 
 ```bash
-# 테스트 파일 실행
+# Run a test file
 preflight test ./tests/agent.test.ts
 
-# Anvil fork와 함께 실행
+# Run with an Anvil fork
 preflight test ./tests/*.test.ts --fork https://mainnet.infura.io/v3/...
 
-# 라이브 네트워크 대상 실행
+# Run against a live network
 preflight test ./tests/*.test.ts --live mainnet
 ```
 
@@ -32,8 +32,8 @@ const result = await runPreflight(['./tests/agent.test.ts'], {
 process.exit(result.exitCode)
 ```
 
-## CLI 옵션
+## CLI Options
 
-- `preflight test <files...>` — 지정한 테스트 파일 실행
-- `--fork <rpcUrl>` — Anvil fork RPC URL 지정
-- `--live <network>` — 라이브 네트워크 이름 지정
+- `preflight test <files...>` — run the specified test files
+- `--fork <rpcUrl>` — specify the Anvil fork RPC URL
+- `--live <network>` — specify the live network name

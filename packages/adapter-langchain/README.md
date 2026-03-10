@@ -2,13 +2,13 @@
 
 LangChain adapter for preflight — deterministic mock chat model backed by mockLLM.
 
-## 설치
+## Installation
 
 ```
 pnpm add @preflight/adapter-langchain
 ```
 
-## 빠른 시작
+## Quick Start
 
 ```ts
 import { mockLLM } from '@preflight/core'
@@ -28,6 +28,6 @@ console.log(result.content) // 'I will swap 1 ETH for USDC'
 
 ## API
 
-- `createMockChatModel(mock)` — LangChain `BaseChatModel.invoke()` 호환 목 모델 생성
-  - `mock`: `mockLLM()`이 반환한 `LLMMock` 인스턴스
-  - 반환: `MockChatModel` (`invoke(messages)` 메서드 제공)
+- `createMockChatModel(mock)` — creates a mock model compatible with LangChain `BaseChatModel.invoke()`
+  - `mock`: a `LLMMock` instance returned by `mockLLM()`
+  - returns: `MockChatModel` (provides an `invoke(messages)` method)

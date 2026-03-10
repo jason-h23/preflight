@@ -6,12 +6,12 @@ import { runSwapAgent } from './agent.js'
 
 const UNISWAP_V3_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 
-describe('Uniswap Swap Agent — preflight 시나리오', () => {
+describe('Uniswap Swap Agent — preflight scenarios', () => {
   // ────────────────────────────────────
-  // 1. 에이전트 유닛 테스트 (Anvil 불필요)
+  // 1. Agent unit tests (no Anvil required)
   // ────────────────────────────────────
-  describe('에이전트 파싱', () => {
-    it('ETH→USDC 스왑 메시지를 올바르게 파싱해야 한다', async () => {
+  describe('agent parsing', () => {
+    it('should correctly parse an ETH→USDC swap message', async () => {
       const intent = await runSwapAgent('Please swap my ETH to USDC')
       expect(intent).not.toBeNull()
       expect(intent?.tokenIn).toBe('ETH')
@@ -19,17 +19,17 @@ describe('Uniswap Swap Agent — preflight 시나리오', () => {
       expect(intent?.amountIn).toBe(1000000000000000000n)
     })
 
-    it('스왑이 아닌 액션은 null을 반환해야 한다', async () => {
+    it('should return null for non-swap actions', async () => {
       const intent = await runSwapAgent('Please check balance')
       expect(intent).toBeNull()
     })
   })
 
   // ────────────────────────────────────
-  // 2. clearance 권한 검증 테스트
+  // 2. clearance permission validation tests
   // ────────────────────────────────────
-  describe('clearance 권한 검증', () => {
-    it('허용된 컨트랙트+액션은 통과해야 한다', () => {
+  describe('clearance permission validation', () => {
+    it('should pass for an allowed contract + action', () => {
       const clearance = createClearance({
         agent: 'swap-agent',
         permissions: {
@@ -49,7 +49,7 @@ describe('Uniswap Swap Agent — preflight 시나리오', () => {
       ).not.toThrow()
     })
 
-    it('허용되지 않은 컨트랙트는 차단해야 한다', () => {
+    it('should block a disallowed contract', () => {
       const clearance = createClearance({
         agent: 'swap-agent',
         permissions: {
@@ -69,7 +69,7 @@ describe('Uniswap Swap Agent — preflight 시나리오', () => {
       ).toThrow()
     })
 
-    it('한도 초과 지출은 차단해야 한다', () => {
+    it('should block spend over the limit', () => {
       const clearance = createClearance({
         agent: 'swap-agent',
         permissions: {
@@ -84,17 +84,17 @@ describe('Uniswap Swap Agent — preflight 시나리오', () => {
         clearance.validate({
           contract: UNISWAP_V3_ROUTER,
           action: 'swap',
-          spend: { token: 'ETH', amount: 1_000_000_000_000_000_000n }, // 1 ETH — 초과
+          spend: { token: 'ETH', amount: 1_000_000_000_000_000_000n }, // 1 ETH — exceeds limit
         })
       ).toThrow()
     })
   })
 
   // ────────────────────────────────────
-  // 3. LLM mock 직접 테스트
+  // 3. Direct LLM mock tests
   // ────────────────────────────────────
-  describe('LLM mock 패턴 매칭', () => {
-    it('mockLLM이 regex 패턴을 올바르게 매칭해야 한다', () => {
+  describe('LLM mock pattern matching', () => {
+    it('mockLLM should correctly match a regex pattern', () => {
       const mock = mockLLM({
         responses: [
           { prompt: /swap.*ETH/i, reply: 'confirmed' },
@@ -103,7 +103,7 @@ describe('Uniswap Swap Agent — preflight 시나리오', () => {
       expect(mock.resolve('swap 1 ETH to USDC')).toBe('confirmed')
     })
 
-    it('createMockChatModel이 마지막 메시지 기준으로 매칭해야 한다', async () => {
+    it('createMockChatModel should match based on the last message', async () => {
       const mock = mockLLM({
         responses: [{ prompt: /approve/i, reply: 'approved' }],
       })

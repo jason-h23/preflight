@@ -6,7 +6,7 @@
 "@preflight/adapter-openai-agents": minor
 ---
 
-Initial release: Phase 1~3 기능 완료
+Initial release: Phase 1–3 features complete
 - @preflight/core: AnvilFork + scenario + assertOnChain + mockLLM
 - @clearance/core: createClearance + validate + check + isExpired
 - @preflight/cli: preflight test CLI runner

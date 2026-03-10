@@ -1,14 +1,14 @@
 # @clearance/core
 
-AI 에이전트 실행 전 권한 스코프를 검증하는 SDK.
+SDK for validating agent permission scopes before execution.
 
-## 설치
+## Installation
 
 ```
 pnpm add @clearance/core
 ```
 
-## 빠른 시작
+## Quick Start
 
 ```ts
 import { createClearance } from '@clearance/core'
@@ -24,8 +24,8 @@ clearance.validate({ contract: '0xUniswapV3Router', action: 'swap' })
 
 ## API
 
-- `createClearance(options)` — 권한 스코프 생성
-- `clearance.validate(action)` — 허용되지 않은 액션 시 throw
-- `clearance.check(action)` — boolean 반환
-- `clearance.isExpired()` — 만료 여부
-- `clearance.spentAmounts` — 누적 지출
+- `createClearance(options)` — create a permission scope
+- `clearance.validate(action)` — throws on disallowed actions
+- `clearance.check(action)` — returns boolean
+- `clearance.isExpired()` — whether the scope has expired
+- `clearance.spentAmounts` — accumulated spend totals

@@ -1,38 +1,38 @@
 # Example: Uniswap Swap Agent
 
-preflight + clearance를 사용하여 AI DeFi 에이전트를 테스트하는 예제.
+An example of testing an AI DeFi agent using preflight + clearance.
 
-## 이 예제가 보여주는 것
+## What This Example Demonstrates
 
-1. **에이전트 파싱 테스트** — LLM mock으로 에이전트 로직을 단위 테스트
-2. **clearance 권한 검증** — 에이전트가 허용된 컨트랙트와 지출 한도 내에서만 동작하는지 확인
-3. **LLM mock 패턴 매칭** — regex/string 기반 LLM 응답 제어
+1. **Agent parsing tests** — unit-test agent logic using an LLM mock
+2. **clearance permission validation** — verify the agent only operates within allowed contracts and spend limits
+3. **LLM mock pattern matching** — control LLM responses with regex/string patterns
 
-## 실행
+## Running
 
 ```bash
 pnpm install
 pnpm test
 ```
 
-## 핵심 패턴
+## Core Pattern
 
 ```ts
 import { mockLLM } from '@preflight/core'
 import { createClearance } from '@clearance/core'
 import { createMockChatModel } from '@preflight/adapter-langchain'
 
-// 1. LLM mock 정의
+// 1. Define LLM mock
 const mock = mockLLM({
   responses: [
     { prompt: /swap.*ETH/i, reply: '{"action":"swap","amountIn":"1000000000000000000"}' },
   ],
 })
 
-// 2. LangChain 호환 mock 모델 생성
+// 2. Create LangChain-compatible mock model
 const chatModel = createMockChatModel(mock)
 
-// 3. clearance로 에이전트 권한 스코핑
+// 3. Scope agent permissions with clearance
 const clearance = createClearance({
   agent: 'swap-agent',
   permissions: {
