@@ -93,6 +93,22 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@22.19.15)(yaml@2.8.2)
 
+  packages/adapter-tokamak:
+    dependencies:
+      '@preflight/core':
+        specifier: workspace:*
+        version: link:../preflight-core
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.8)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@22.19.15)(yaml@2.8.2)
+
   packages/clearance-core:
     devDependencies:
       tsup:
