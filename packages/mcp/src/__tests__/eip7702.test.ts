@@ -79,4 +79,25 @@ describe('verify_authorization tool', () => {
     const data = JSON.parse(result.content[0].text)
     expect(data.valid).toBe(false)
   })
+
+  it('should return valid: false when expectedAddress does not match signer', async () => {
+    const signed = await signAuthorizationTool.handler({
+      privateKey: TEST_PRIVATE_KEY,
+      contract: TEST_CONTRACT,
+      chainId: '11155111',
+      nonce: '0',
+    })
+    const auth = JSON.parse(signed.content[0].text)
+
+    const result = await verifyAuthorizationTool.handler({
+      address: auth.address,
+      nonce: auth.nonce,
+      chainId: auth.chainId,
+      signature: auth.signature,
+      contract: TEST_CONTRACT,
+      expectedAddress: '0x0000000000000000000000000000000000000001',
+    })
+    const data = JSON.parse(result.content[0].text)
+    expect(data.valid).toBe(false)
+  })
 })
