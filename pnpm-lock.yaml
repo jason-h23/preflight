@@ -129,6 +129,9 @@ importers:
       '@clearance/core':
         specifier: workspace:*
         version: link:../clearance-core
+      '@clearance/eip7702':
+        specifier: workspace:*
+        version: link:../eip7702
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.27.1(@cfworker/json-schema@4.1.1)(zod@3.25.76)
