@@ -1,0 +1,48 @@
+{
+  "name": "@preflight/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for preflight — AI agent safety layer for Ethereum transactions",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "preflight-mcp": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run --exclude '**/integration.test.ts'",
+    "test:integration": "vitest run src/__tests__/integration.test.ts",
+    "test:all": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@preflight/core": "workspace:*",
+    "@clearance/core": "workspace:*",
+    "viem": "^2.0.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@viem/anvil": "^0.0.9",
+    "typescript": "^5.4.0",
+    "tsup": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}
