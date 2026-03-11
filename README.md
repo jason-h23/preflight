@@ -11,6 +11,7 @@
 | [`@preflight/cli`](./packages/preflight-cli) | CLI test runner |
 | [`@preflight/adapter-langchain`](./packages/adapter-langchain) | LangChain mock chat model adapter |
 | [`@preflight/adapter-openai-agents`](./packages/adapter-openai-agents) | OpenAI Agents SDK mock adapter |
+| [`@preflight/mcp`](./packages/mcp) | MCP server — fork/simulate/clearance tools for AI agents |
 
 ## Why preflight
 
@@ -144,7 +145,8 @@ preflight/
 │   │       └── index.ts
 │   ├── preflight-cli/      # @preflight/cli
 │   ├── adapter-langchain/  # @preflight/adapter-langchain
-│   └── adapter-openai-agents/ # @preflight/adapter-openai-agents
+│   ├── adapter-openai-agents/ # @preflight/adapter-openai-agents
+│   └── mcp/                # @preflight/mcp — MCP server
 ├── examples/
 │   └── uniswap-swap-agent/ # end-to-end example
 ├── pnpm-workspace.yaml
@@ -159,7 +161,8 @@ preflight/
 | Phase 2 | clearance permission scoping SDK | ✅ Done |
 | Phase 3 | CLI + LangChain/OpenAI adapters | ✅ Done |
 | Phase 4 | npm publish + examples + TypeDoc | ✅ Done |
-| Phase 5+ | EIP-7702 live signing + testnet | TBD |
+| Phase 5 | MCP server (`@preflight/mcp`) | ✅ Done |
+| Phase 6+ | EIP-7702 live signing + testnet | TBD |
 
 ## License
 
