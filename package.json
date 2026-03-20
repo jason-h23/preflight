@@ -5,8 +5,10 @@
   "scripts": {
     "build": "turbo build",
     "test": "turbo test",
+    "test:report": "vitest run --config vitest.report.config.ts",
     "lint": "turbo lint",
     "docs": "typedoc",
+    "docs:serve": "typedoc && npx serve docs/api",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"
@@ -18,9 +20,10 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
+    "@vitest/ui": "^4.0.18",
     "tsup": "^8.0.0",
     "turbo": "^2.0.0",
-    "typedoc": "^0.27.0",
+    "typedoc": "^0.27.9",
     "typedoc-plugin-markdown": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.18"

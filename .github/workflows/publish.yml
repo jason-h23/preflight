@@ -1,0 +1,41 @@
+# .github/workflows/publish.yml
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  publish:
+    name: Publish packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install Foundry (Anvil)
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Publish all public packages
+        run: pnpm -r publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

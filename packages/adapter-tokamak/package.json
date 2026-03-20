@@ -1,0 +1,35 @@
+{
+  "name": "@preflight/adapter-tokamak",
+  "version": "0.1.0",
+  "description": "Tokamak AI Layer adapter for preflight — mock agent backed by mockLLM",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/preflight-sh/preflight"
+  },
+  "keywords": ["ai-agent", "testing", "tokamak", "l2", "mock", "preflight"],
+  "engines": { "node": ">=22.0.0" },
+  "publishConfig": { "access": "public" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0",
+    "tsup": "^8.0.0"
+  },
+  "dependencies": {
+    "@preflight/core": "workspace:*"
+  }
+}

@@ -1,8 +1,10 @@
-name: Deploy Docs
+# .github/workflows/docs.yml
+name: Deploy API Docs
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -12,33 +14,43 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-docs:
+    name: Build TypeDoc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: pnpm
+
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm docs
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
 
-  deploy:
-    needs: build
+      - name: Generate TypeDoc
+        run: pnpm docs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/api
+
+  deploy-docs:
+    name: Deploy to GitHub Pages
+    needs: build-docs
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

@@ -3,6 +3,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createForkTool, resetForkTool } from './tools/fork.js'
 import { simulateTransactionTool } from './tools/simulate.js'
 import { checkClearanceTool } from './tools/clearance.js'
+import { signAuthorizationTool, verifyAuthorizationTool } from './tools/eip7702.js'
+import { assertOnChainTool } from './tools/assert.js'
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -14,6 +16,9 @@ export function createServer(): McpServer {
   server.tool(resetForkTool.name, resetForkTool.schema.shape, resetForkTool.handler)
   server.tool(simulateTransactionTool.name, simulateTransactionTool.schema.shape, simulateTransactionTool.handler)
   server.tool(checkClearanceTool.name, checkClearanceTool.schema.shape, checkClearanceTool.handler)
+  server.tool(signAuthorizationTool.name, signAuthorizationTool.schema.shape, signAuthorizationTool.handler)
+  server.tool(verifyAuthorizationTool.name, verifyAuthorizationTool.schema.shape, verifyAuthorizationTool.handler)
+  server.tool(assertOnChainTool.name, assertOnChainTool.schema.shape, assertOnChainTool.handler)
 
   return server
 }

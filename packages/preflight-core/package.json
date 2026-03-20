@@ -38,9 +38,11 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "test": "vitest run",
+    "test:live": "vitest run --config vitest.config.live.ts",
     "dev": "vitest"
   },
   "dependencies": {
+    "@clearance/core": "workspace:^",
     "@viem/anvil": "^0.0.9",
     "viem": "^2.0.0"
   },

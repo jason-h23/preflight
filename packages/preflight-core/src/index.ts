@@ -16,6 +16,10 @@ export type { Scenario, ScenarioContext, ScenarioOptions } from './scenario'
 export { assertOnChain, OnChainAsserter } from './assert'
 export type { AssertContext, OnChainSnapshot } from './assert'
 
+// Live testnet fork
+export { createLiveFork } from './live-fork'
+export type { LiveFork, LiveForkOptions } from './live-fork'
+
 // LLM mocking
 export { mockLLM, createMockOpenAI } from './mock-llm'
 export type {
@@ -26,3 +30,17 @@ export type {
   ChatCompletionParams,
   ChatCompletionResponse,
 } from './mock-llm'
+
+// EVMbench integration
+export {
+  parseEvmbenchFindings,
+  createPermissionsFromEvmbench,
+} from './evmbench'
+export type {
+  EvmbenchSeverity,
+  EvmbenchFinding,
+  EvmbenchReport,
+  EvmbenchFilterOptions,
+  EvmbenchSummary,
+  EvmbenchPermissions,
+} from './evmbench'

@@ -1,19 +1,29 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPointStrategy": "packages",
   "entryPoints": [
-    "packages/preflight-core",
-    "packages/clearance-core",
-    "packages/adapter-langchain",
-    "packages/adapter-openai-agents",
-    "packages/preflight-cli"
+    "packages/preflight-core/src/index.ts",
+    "packages/clearance-core/src/index.ts",
+    "packages/eip7702/src/index.ts",
+    "packages/mcp/src/server.ts",
+    "packages/adapter-langchain/src/index.ts",
+    "packages/adapter-openai-agents/src/index.ts",
+    "packages/adapter-tokamak/src/index.ts"
   ],
-  "out": "docs",
-  "plugin": ["typedoc-plugin-markdown"],
+  "entryPointStrategy": "resolve",
+  "out": "docs/api",
+  "name": "preflight",
   "readme": "README.md",
-  "name": "Preflight Monorepo",
   "includeVersion": true,
-  "excludePrivate": true,
-  "excludeInternal": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/preflight-sh/preflight",
+    "npm": "https://www.npmjs.com/package/@preflight/core"
+  },
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.test.ts"
+  ],
+  "hideGenerator": true,
+  "tsconfig": "tsconfig.base.json",
   "skipErrorChecking": true
 }

@@ -1,21 +1,32 @@
 import { createPublicClient, http, type PublicClient } from 'viem'
-import { mainnet } from 'viem/chains'
+import { mainnet, foundry } from 'viem/chains'
 import { createAnvil } from '@viem/anvil'
 
-/**
- * Options for creating an Anvil fork environment.
- */
-export interface ForkOptions {
-  /** RPC URL of the chain to fork */
+/** Standalone mode — Anvil runs as a local chain (chainId 31337) without forking. */
+interface StandaloneForkOptions {
+  readonly standalone: true
+  readonly port?: number
+}
+
+/** Fork mode — Anvil forks a remote chain via RPC. */
+interface RemoteForkOptions {
   readonly rpc: string
-  /** Block number to fork at (defaults to latest) */
+  readonly standalone?: false
   readonly blockNumber?: bigint
-  /** Local Anvil port (defaults to auto-assignment via randomPort) */
   readonly port?: number
 }
 
 /**
- * A running Anvil fork instance with a viem PublicClient.
+ * Options for creating an Anvil environment.
+ *
+ * Two modes:
+ * - **Fork mode**: `{ rpc: 'https://...' }` — forks a remote chain
+ * - **Standalone mode**: `{ standalone: true }` — local chain, 10 test accounts with 10k ETH
+ */
+export type ForkOptions = StandaloneForkOptions | RemoteForkOptions
+
+/**
+ * A running Anvil instance with a viem PublicClient.
  */
 export interface Fork {
   /** viem PublicClient connected to the local Anvil instance */
@@ -48,29 +59,40 @@ function isPortConflict(err: unknown): boolean {
 }
 
 /**
- * Creates a local Anvil fork of an EVM chain.
+ * Creates a local Anvil environment.
  *
  * Like spinning up a local copy of Ethereum — you get a full blockchain
  * environment to test against without touching the real network.
  *
+ * Two modes:
+ * - Fork mode (`{ rpc: '...' }`) — forks a remote chain at an optional block
+ * - Standalone mode (`{ standalone: true }`) — empty local chain (chainId 31337)
+ *
  * When no explicit port is provided, up to 3 port-conflict retries are attempted
  * with fresh random ports before giving up.
  *
- * Note: Phase 1 uses the `mainnet` chain definition for the viem PublicClient.
- * Multi-chain support (Base, Optimism, Arbitrum) is planned for Phase 2.
- *
- * @param options - Fork configuration (RPC URL, optional block number and port)
+ * @param options - Anvil configuration (see ForkOptions)
  * @returns A Fork object with a connected PublicClient and a stop function
- * @throws If Anvil fails to start (RPC unreachable, port conflict after retries, timeout)
+ * @throws If Anvil fails to start, or if rpc is missing/empty in fork mode
  */
 export async function createFork(options: ForkOptions): Promise<Fork> {
+  // Narrow mode and extract fork-specific options via discriminant
+  const rpc = options.standalone
+    ? undefined
+    // Convert empty/whitespace-only rpc to undefined (safety net for JS callers)
+    : options.rpc.trim() || undefined
+  const blockNumber = options.standalone ? undefined : options.blockNumber
+
+  if (!options.standalone && !rpc) {
+    throw new Error('createFork: rpc is required unless standalone is true')
+  }
+
   const maxAttempts = options.port === undefined ? 3 : 1
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const port = options.port ?? randomPort()
     const anvil = createAnvil({
-      forkUrl: options.rpc,
-      forkBlockNumber: options.blockNumber,
+      ...(rpc ? { forkUrl: rpc, forkBlockNumber: blockNumber } : {}),
       port,
       startTimeout: 30_000,
     })
@@ -86,7 +108,7 @@ export async function createFork(options: ForkOptions): Promise<Fork> {
 
     const rpcUrl = `http://${anvil.host}:${anvil.port}`
     const client = createPublicClient({
-      chain: mainnet,
+      chain: rpc ? mainnet : foundry,
       transport: http(rpcUrl),
     })
 
