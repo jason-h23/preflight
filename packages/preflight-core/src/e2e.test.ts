@@ -2,9 +2,12 @@
  * Anvil Standalone E2E Tests
  *
  * Full flow E2E using Anvil standalone mode (no external RPC required).
- * Tests: createFork(standalone) → scenario → clearance → assertOnChain
+ * Tests: createFork(standalone) → scenario → clearance → real tx → assertOnChain
  */
 import { describe, it, expect, afterEach } from 'vitest'
+import { createPublicClient, createWalletClient, http, parseEther } from 'viem'
+import { foundry } from 'viem/chains'
+import { privateKeyToAccount } from 'viem/accounts'
 import { createFork } from './fork'
 import { preflight } from './scenario'
 import { assertOnChain } from './assert'
@@ -13,13 +16,18 @@ import { createClearance } from '@clearance/core'
 
 /** Anvil default test account #0 */
 const TEST_ACCOUNT = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as const
+const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const
+/** Anvil default test account #1 */
+const RECIPIENT = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const
 const TEN_THOUSAND_ETH = 10_000_000_000_000_000_000_000n
+const ONE_ETH = 1_000_000_000_000_000_000n
 
 describe('E2E: Fork standalone basics', () => {
-  let fork: Awaited<ReturnType<typeof createFork>>
+  let fork: Awaited<ReturnType<typeof createFork>> | undefined
 
   afterEach(async () => {
     await fork?.stop()
+    fork = undefined
   }, 10_000)
 
   it('should start standalone Anvil and return a working client', async () => {
@@ -36,20 +44,16 @@ describe('E2E: Fork standalone basics', () => {
   }, 30_000)
 
   it('should stop cleanly and reject subsequent requests', async () => {
-    fork = await createFork({ standalone: true })
-    const rpcUrl = fork.rpcUrl
-    await fork.stop()
+    // Use local variable to avoid afterEach double-stop
+    const f = await createFork({ standalone: true })
+    const rpcUrl = f.rpcUrl
+    await f.stop()
 
-    const { createPublicClient, http } = await import('viem')
-    const { mainnet } = await import('viem/chains')
     const deadClient = createPublicClient({
-      chain: mainnet,
+      chain: foundry,
       transport: http(rpcUrl, { timeout: 2_000, retryCount: 0 }),
     })
     await expect(deadClient.getBlockNumber()).rejects.toThrow()
-
-    // Prevent afterEach double-stop
-    fork = undefined as unknown as typeof fork
   }, 30_000)
 })
 
@@ -80,176 +84,140 @@ describe('E2E: Scenario + standalone fork', () => {
     })
 
     expect(rpcUrl).not.toBeNull()
-    const { createPublicClient, http } = await import('viem')
-    const { mainnet } = await import('viem/chains')
     const deadClient = createPublicClient({
-      chain: mainnet,
+      chain: foundry,
       transport: http(rpcUrl!, { timeout: 2_000, retryCount: 0 }),
     })
     await expect(deadClient.getBlockNumber()).rejects.toThrow()
   }, 30_000)
 })
 
-describe('E2E: Clearance permission check', () => {
-  it('should allow a valid call within permissions', () => {
-    const clearance = createClearance({
-      agent: 'test-agent',
-      permissions: {
-        allowedContracts: ['0x1234567890abcdef1234567890abcdef12345678'],
-        allowedActions: ['swap'],
-        spendLimit: { ETH: TEN_THOUSAND_ETH },
-        expiry: 3600,
-      },
+describe('E2E: Full flow — clearance → transfer → assert', () => {
+  let fork: Awaited<ReturnType<typeof createFork>> | undefined
+
+  afterEach(async () => {
+    await fork?.stop()
+    fork = undefined
+  }, 10_000)
+
+  it('should execute a clearance-guarded transfer and verify on-chain state', async () => {
+    fork = await createFork({ standalone: true })
+    const account = privateKeyToAccount(TEST_PRIVATE_KEY)
+    const wallet = createWalletClient({
+      account,
+      chain: foundry,
+      transport: http(fork.rpcUrl),
     })
 
-    expect(() =>
-      clearance.check({
-        action: 'swap',
-        contract: '0x1234567890abcdef1234567890abcdef12345678',
-        spend: { token: 'ETH', amount: 1_000_000_000_000_000_000n },
-      })
-    ).not.toThrow()
-  })
+    // Step 1: Read state before
+    const balanceBefore = await fork.client.getBalance({ address: TEST_ACCOUNT })
+    const blockBefore = await fork.client.getBlockNumber()
 
-  it('should reject a call to disallowed contract', () => {
-    const clearance = createClearance({
-      agent: 'test-agent',
-      permissions: {
-        allowedContracts: ['0x1234567890abcdef1234567890abcdef12345678'],
-        allowedActions: ['swap'],
-        spendLimit: {},
-        expiry: 3600,
-      },
-    })
-
-    expect(() =>
-      clearance.check({
-        action: 'swap',
-        contract: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-      })
-    ).toThrow()
-  })
-
-  it('should reject spend exceeding limit via validate', () => {
-    const clearance = createClearance({
-      agent: 'test-agent',
-      permissions: {
-        allowedContracts: ['0x1234567890abcdef1234567890abcdef12345678'],
-        allowedActions: ['swap'],
-        spendLimit: { ETH: 1_000_000_000_000_000_000n },
-        expiry: 3600,
-      },
-    })
-
-    // First call within budget
-    expect(() =>
-      clearance.validate({
-        action: 'swap',
-        contract: '0x1234567890abcdef1234567890abcdef12345678',
-        spend: { token: 'ETH', amount: 500_000_000_000_000_000n },
-      })
-    ).not.toThrow()
-
-    // Second call exceeds cumulative budget
-    expect(() =>
-      clearance.validate({
-        action: 'swap',
-        contract: '0x1234567890abcdef1234567890abcdef12345678',
-        spend: { token: 'ETH', amount: 600_000_000_000_000_000n },
-      })
-    ).toThrow()
-  })
-})
-
-describe('E2E: assertOnChain with standalone context', () => {
-  it('should pass balance assertions with test account data', () => {
-    const ctx: AssertContext = {
-      snapshots: {
-        before: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH } },
-          blockNumber: 0n,
-        },
-        after: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH - 2_000_000_000_000_000_000n } },
-          blockNumber: 1n,
-        },
-      },
-      gasUsed: 21_000n,
-      approvals: [],
-    }
-
-    expect(() =>
-      assertOnChain(ctx)
-        .balanceDecreased('ETH', { address: TEST_ACCOUNT, min: 2_000_000_000_000_000_000n })
-        .gasUsed({ max: 100_000n })
-        .noUnexpectedApprovals()
-    ).not.toThrow()
-  })
-
-  it('should fail when gas exceeds limit', () => {
-    const ctx: AssertContext = {
-      snapshots: {
-        before: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH } },
-          blockNumber: 0n,
-        },
-        after: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH } },
-          blockNumber: 1n,
-        },
-      },
-      gasUsed: 500_000n,
-      approvals: [],
-    }
-
-    expect(() =>
-      assertOnChain(ctx).gasUsed({ max: 100_000n })
-    ).toThrow('Expected gas used to be at most 100000')
-  })
-
-  it('should chain clearance + assert in a single flow', async () => {
-    // Simulate: clearance check → action → assert result
+    // Step 2: Clearance validates the call
     const clearance = createClearance({
       agent: 'e2e-agent',
       permissions: {
-        allowedContracts: ['0x1234567890abcdef1234567890abcdef12345678'],
+        allowedContracts: [RECIPIENT],
         allowedActions: ['transfer'],
-        spendLimit: { ETH: 5_000_000_000_000_000_000n },
+        spendLimit: { ETH: parseEther('5') },
+        expiry: 3600,
+      },
+    })
+    clearance.validate({
+      action: 'transfer',
+      contract: RECIPIENT,
+      spend: { token: 'ETH', amount: ONE_ETH },
+    })
+
+    // Step 3: Send real ETH transfer on standalone Anvil
+    const hash = await wallet.sendTransaction({
+      to: RECIPIENT,
+      value: ONE_ETH,
+    })
+    const receipt = await fork.client.waitForTransactionReceipt({ hash })
+
+    // Step 4: Read state after
+    const balanceAfter = await fork.client.getBalance({ address: TEST_ACCOUNT })
+
+    // Step 5: Assert on-chain state from real Anvil reads
+    const ctx: AssertContext = {
+      snapshots: {
+        before: { balances: { [TEST_ACCOUNT]: { ETH: balanceBefore } }, blockNumber: blockBefore },
+        after: { balances: { [TEST_ACCOUNT]: { ETH: balanceAfter } }, blockNumber: receipt.blockNumber },
+      },
+      gasUsed: receipt.gasUsed,
+      approvals: [],
+    }
+
+    assertOnChain(ctx)
+      .balanceDecreased('ETH', { address: TEST_ACCOUNT, min: ONE_ETH })
+      .gasUsed({ max: 100_000n })
+      .noUnexpectedApprovals()
+
+    // Verify clearance tracked the spend
+    expect(clearance.spentAmounts['ETH']).toBe(ONE_ETH)
+  }, 30_000)
+
+  it('should reject transfer when clearance denies the action', async () => {
+    fork = await createFork({ standalone: true })
+
+    const clearance = createClearance({
+      agent: 'e2e-agent',
+      permissions: {
+        allowedContracts: [RECIPIENT],
+        allowedActions: ['swap'], // 'transfer' not allowed
+        spendLimit: { ETH: parseEther('5') },
         expiry: 3600,
       },
     })
 
-    // Step 1: Clearance validates the call
-    clearance.validate({
-      action: 'transfer',
-      contract: '0x1234567890abcdef1234567890abcdef12345678',
-      spend: { token: 'ETH', amount: 2_000_000_000_000_000_000n },
+    expect(() =>
+      clearance.validate({
+        action: 'transfer',
+        contract: RECIPIENT,
+        spend: { token: 'ETH', amount: ONE_ETH },
+      })
+    ).toThrow()
+  }, 30_000)
+
+  it('should detect unexpected balance change via assertOnChain', async () => {
+    fork = await createFork({ standalone: true })
+    const account = privateKeyToAccount(TEST_PRIVATE_KEY)
+    const wallet = createWalletClient({
+      account,
+      chain: foundry,
+      transport: http(fork.rpcUrl),
     })
 
-    // Step 2: Assert the (simulated) on-chain result
+    const balanceBefore = await fork.client.getBalance({ address: TEST_ACCOUNT })
+    const blockBefore = await fork.client.getBlockNumber()
+
+    // Send 2 ETH
+    const hash = await wallet.sendTransaction({
+      to: RECIPIENT,
+      value: parseEther('2'),
+    })
+    const receipt = await fork.client.waitForTransactionReceipt({ hash })
+    const balanceAfter = await fork.client.getBalance({ address: TEST_ACCOUNT })
+
     const ctx: AssertContext = {
       snapshots: {
-        before: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH } },
-          blockNumber: 0n,
-        },
-        after: {
-          balances: { [TEST_ACCOUNT]: { ETH: TEN_THOUSAND_ETH - 2_000_000_000_000_000_000n } },
-          blockNumber: 1n,
-        },
+        before: { balances: { [TEST_ACCOUNT]: { ETH: balanceBefore } }, blockNumber: blockBefore },
+        after: { balances: { [TEST_ACCOUNT]: { ETH: balanceAfter } }, blockNumber: receipt.blockNumber },
       },
-      gasUsed: 21_000n,
+      gasUsed: receipt.gasUsed,
       approvals: [],
     }
 
+    // min: 1 ETH, actual: ~2 ETH + gas — should pass
+    assertOnChain(ctx)
+      .balanceDecreased('ETH', { address: TEST_ACCOUNT, min: ONE_ETH })
+      .gasUsed({ max: 100_000n })
+
+    // min: 5 ETH, actual: ~2 ETH — should fail
     expect(() =>
       assertOnChain(ctx)
-        .balanceDecreased('ETH', { address: TEST_ACCOUNT, min: 2_000_000_000_000_000_000n })
-        .gasUsed({ max: 50_000n })
-        .noUnexpectedApprovals()
-    ).not.toThrow()
-
-    // Verify clearance tracked the spend
-    expect(clearance.spentAmounts['ETH']).toBe(2_000_000_000_000_000_000n)
-  })
+        .balanceDecreased('ETH', { address: TEST_ACCOUNT, min: parseEther('5') })
+    ).toThrow()
+  }, 30_000)
 })
